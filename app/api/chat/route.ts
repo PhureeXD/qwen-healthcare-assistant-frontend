@@ -5,7 +5,9 @@ export async function GET(req: NextRequest) {
     // Extract prompt from query parameters
     const { searchParams } = new URL(req.url);
     const prompt = searchParams.get("prompt");
-
+    const lastUserMessage = searchParams.get("lastUserMessage");
+    const lastAssistantMessage = searchParams.get("lastAssistantMessage");
+    const useRAG = searchParams.get("useRAG");
     if (!prompt) {
       return NextResponse.json(
         { error: "Prompt is required" },
@@ -15,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     // Forward the request to the FastAPI backend using GET
     const response = await fetch(
-      `http://127.0.0.1:8000/generate?query=${encodeURIComponent(prompt)}`,
+      `http://127.0.0.1:8000/generate?query=${encodeURIComponent(prompt)}&useRAG=${encodeURIComponent(useRAG || false)}&lastUserMessage=${encodeURIComponent(lastUserMessage || "")}&lastAssistantMessage=${encodeURIComponent(lastAssistantMessage || "")}`,
       {
         method: "GET",
         headers: {

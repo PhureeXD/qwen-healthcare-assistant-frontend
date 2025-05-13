@@ -41,7 +41,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
       >
         {/* <div className="whitespace-pre-wrap">{message.content}</div> */}
-        <ReactMarkdown>{message.content}</ReactMarkdown>
+
+        <div className="whitespace-pre-wrap">
+          <ReactMarkdown>{message.content}</ReactMarkdown>
+        </div>
       </div>
       {isUser && (
         <Avatar className="h-8 w-8 bg-gray-300">

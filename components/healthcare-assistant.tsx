@@ -13,10 +13,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, BrainCircuit, Trash2 } from "lucide-react"; // Added BrainCircuit for RAG icon
 import { cn } from "@/lib/utils";
 import { ChatMessage } from "@/components/chat-message";
 import { HealthSuggestions } from "@/components/health-suggestions";
+import { Switch } from "@/components/ui/switch"; // Import Switch for a toggle
+import { Label } from "@/components/ui/label"; // Import Label for the Switch
 
 type Message = {
   role: "user" | "assistant";
@@ -25,14 +27,16 @@ type Message = {
 
 export function HealthcareAssistant() {
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
+  const initialMessages: Message[] = [
     {
       role: "assistant",
       content:
         "Hello! I'm your healthcare assistant. How can I help you today?",
     },
-  ]);
+  ];
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
+  const [useRAG, setUseRAG] = useState(false); // State for RAG toggle
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -44,24 +48,68 @@ export function HealthcareAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleClearConversation = async () => {
+    try {
+      const response = await fetch("/api/clear"); // Assuming your API is prefixed with /api
+      if (!response.ok) {
+        throw new Error("Failed to clear conversation on the server");
+      }
+      setMessages(initialMessages); // Reset messages to initial state
+    } catch (error) {
+      console.error("Error clearing conversation:", error);
+      // Optionally, show an error message to the user
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            "Sorry, I couldn't clear the conversation. Please try again.",
+        },
+      ]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!input.trim() || isLoading) return;
+    const originalUserMessage = input.trim(); // Store the original message
 
-    const userMessage = input.trim();
     setInput("");
 
     // Add user message to chat
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: originalUserMessage },
+    ]); // Show the modified message if RAG is used
 
     // Set loading state
     setIsLoading(true);
 
     try {
+      // Find the last user message
+      const lastUserMessage = messages
+        .slice()
+        .reverse()
+        .find((msg) => msg.role === "user")?.content;
+      // Find the last assistant message
+      const lastAssistantMessage = messages
+        .slice()
+        .reverse()
+        .find((msg) => msg.role === "assistant")?.content;
+
+      let apiUrl = `/api/chat?prompt=${encodeURIComponent(originalUserMessage)}&useRAG=${encodeURIComponent(useRAG)}`;
+      if (lastUserMessage) {
+        apiUrl += `&lastUserMessage=${encodeURIComponent(lastUserMessage)}`;
+      }
+      if (lastAssistantMessage) {
+        apiUrl += `&lastAssistantMessage=${encodeURIComponent(lastAssistantMessage)}`;
+      }
+
       // Call the API with streaming response using GET
       const response = await fetch(
-        `/api/chat?prompt=${encodeURIComponent(userMessage)}`,
+        // Use the potentially modified userMessage
+        apiUrl,
         {
           method: "GET",
           headers: {
@@ -87,25 +135,30 @@ export function HealthcareAssistant() {
           done = doneReading;
 
           if (value) {
-            const text = decoder.decode(value);
+            const text = decoder.decode(value, { stream: true });
 
             // Process Server-Sent Events format
             const lines = text.split("\n");
+            const isDataAndThinkStart = lines[0] === "data: <think>";
+            const isThinkEnd = lines[2] == "</think>";
             let content = "";
-
+            // console.log(lines);
             for (const line of lines) {
+              // fix special case for non-streaming responses
+              // no prefix "data: " in this case
+              if (isDataAndThinkStart && isThinkEnd) {
+                // const index = text.indexOf("</think>");
+                // const dataContent = text.substring(index + 8 + 1);
+                const dataContent = text.substring(6);
+                content += dataContent;
+                break;
+              }
+
               // Only process lines that start with "data: "
-              if (line.startsWith("data: ")) {
-                // check if <คิด> is present in the line
-                if (line.includes("<คิด>")) {
-                  content += text.substring(6);
-                  break;
-                }
+              else if (line.startsWith("data: ")) {
                 // Extract content after "data: " prefix
                 const dataContent = line.substring(6);
-                if (dataContent) {
-                  content += dataContent;
-                }
+                content += dataContent;
               }
             }
 
@@ -149,15 +202,40 @@ export function HealthcareAssistant() {
   return (
     <Card className="p-2 w-full border-blue-200 shadow-lg">
       <CardHeader className="bg-blue-50 border-b border-blue-100">
-        <CardTitle className="flex items-center gap-2 text-blue-800">
-          <Avatar className="h-8 w-8 bg-blue-700">
-            <AvatarFallback>HC</AvatarFallback>
-            <AvatarImage
-              src="/placeholder.svg?height=32&width=32"
-              alt="Healthcare Assistant"
+        <CardTitle className="flex items-center justify-between gap-2 text-blue-800">
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8 bg-blue-700">
+              <AvatarFallback>HC</AvatarFallback>
+              <AvatarImage
+                // src="/placeholder.svg?height=32&width=32"
+                alt="Healthcare Assistant"
+              />
+            </Avatar>
+            Healthcare Assistant
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClearConversation}
+              className="text-blue-700 hover:text-blue-900 cursor-pointer"
+              aria-label="Clear conversation"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+            <Switch
+              id="rag-toggle"
+              checked={useRAG}
+              onCheckedChange={setUseRAG}
+              aria-label="Toggle RAG"
             />
-          </Avatar>
-          Healthcare Assistant
+            <Label
+              htmlFor="rag-toggle"
+              className="flex items-center gap-1 text-sm font-medium text-blue-700"
+            >
+              <BrainCircuit className="h-4 w-4" /> RAG
+            </Label>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">

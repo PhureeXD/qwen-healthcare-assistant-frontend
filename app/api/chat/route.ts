@@ -14,10 +14,11 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
+    const baseURL = process.env.BASE_URL || "http://127.0.0.1:8000";
 
     // Forward the request to the FastAPI backend using GET
     const response = await fetch(
-      `http://127.0.0.1:8000/generate?query=${encodeURIComponent(prompt)}&useRAG=${encodeURIComponent(useRAG || false)}&lastUserMessage=${encodeURIComponent(lastUserMessage || "")}&lastAssistantMessage=${encodeURIComponent(lastAssistantMessage || "")}`,
+      `${baseURL}/generate?query=${encodeURIComponent(prompt)}&useRAG=${encodeURIComponent(useRAG || false)}&lastUserMessage=${encodeURIComponent(lastUserMessage || "")}&lastAssistantMessage=${encodeURIComponent(lastAssistantMessage || "")}`,
       {
         method: "GET",
         headers: {

@@ -1,9 +1,9 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    // Forward the request to the FastAPI backend's /clear endpoint
-    const fastApiResponse = await fetch("http://127.0.0.1:8000/clear", {
+    const baseURL = process.env.BASE_URL || "http://127.0.0.1:8000";
+    const fastApiResponse = await fetch(`${baseURL}/clear`, {
       method: "GET",
       headers: {
         Accept: "application/json",

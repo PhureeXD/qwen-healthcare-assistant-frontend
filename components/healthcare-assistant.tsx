@@ -98,7 +98,7 @@ export function HealthcareAssistant() {
       //   .reverse()
       //   .find((msg) => msg.role === "assistant")?.content;
 
-      let apiUrl = `/api/chat?prompt=${encodeURIComponent(originalUserMessage)}&useRAG=${encodeURIComponent(useRAG)}`;
+      const apiUrl = `/api/chat?prompt=${encodeURIComponent(originalUserMessage)}&useRAG=${encodeURIComponent(useRAG)}`;
       // if (lastUserMessage) {
       //   apiUrl += `&lastUserMessage=${encodeURIComponent(lastUserMessage)}`;
       // }

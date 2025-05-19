@@ -88,23 +88,23 @@ export function HealthcareAssistant() {
 
     try {
       // Find the last user message
-      const lastUserMessage = messages
-        .slice()
-        .reverse()
-        .find((msg) => msg.role === "user")?.content;
+      // const lastUserMessage = messages
+      //   .slice()
+      //   .reverse()
+      //   .find((msg) => msg.role === "user")?.content;
       // Find the last assistant message
-      const lastAssistantMessage = messages
-        .slice()
-        .reverse()
-        .find((msg) => msg.role === "assistant")?.content;
+      // const lastAssistantMessage = messages
+      //   .slice()
+      //   .reverse()
+      //   .find((msg) => msg.role === "assistant")?.content;
 
       let apiUrl = `/api/chat?prompt=${encodeURIComponent(originalUserMessage)}&useRAG=${encodeURIComponent(useRAG)}`;
-      if (lastUserMessage) {
-        apiUrl += `&lastUserMessage=${encodeURIComponent(lastUserMessage)}`;
-      }
-      if (lastAssistantMessage) {
-        apiUrl += `&lastAssistantMessage=${encodeURIComponent(lastAssistantMessage)}`;
-      }
+      // if (lastUserMessage) {
+      //   apiUrl += `&lastUserMessage=${encodeURIComponent(lastUserMessage)}`;
+      // }
+      // if (lastAssistantMessage) {
+      //   apiUrl += `&lastAssistantMessage=${encodeURIComponent(lastAssistantMessage)}`;
+      // }
 
       // Call the API with streaming response using GET
       const response = await fetch(
@@ -147,17 +147,18 @@ export function HealthcareAssistant() {
               // fix special case for non-streaming responses
               // no prefix "data: " in this case
               if (isDataAndThinkStart && isThinkEnd) {
-                // const index = text.indexOf("</think>");
-                // const dataContent = text.substring(index + 8 + 1);
-                const dataContent = text.substring(6);
+                const index = text.lastIndexOf("</think>");
+                const dataContent = text.substring(index + 8 + 1);
                 content += dataContent;
                 break;
               }
-
+              // streaming response case
               // Only process lines that start with "data: "
               else if (line.startsWith("data: ")) {
-                // Extract content after "data: " prefix
                 const dataContent = line.substring(6);
+                if (/<\/?think>/.test(dataContent)) {
+                  continue;
+                }
                 content += dataContent;
               }
             }

@@ -159,7 +159,7 @@ export function HealthcareAssistant() {
                 if (/<\/?think>/.test(dataContent)) {
                   continue;
                 }
-                content += dataContent;
+                content += dataContent ? dataContent : "\n";
               }
             }
 

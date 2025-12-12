@@ -5,20 +5,20 @@ export async function GET(req: NextRequest) {
     // Extract prompt from query parameters
     const { searchParams } = new URL(req.url);
     const prompt = searchParams.get("prompt");
-    const lastUserMessage = searchParams.get("lastUserMessage");
-    const lastAssistantMessage = searchParams.get("lastAssistantMessage");
     const useRAG = searchParams.get("useRAG");
+    const threadId = searchParams.get("thread_id");
+
     if (!prompt) {
       return NextResponse.json(
         { error: "Prompt is required" },
         { status: 400 }
       );
     }
-    const baseURL = process.env.BASE_URL || "http://127.0.0.1:8000";
+    const baseURL = process.env.BASE_URL || "https://phureexd-phuree.hf.space";
 
     // Forward the request to the FastAPI backend using GET
     const response = await fetch(
-      `${baseURL}/generate?query=${encodeURIComponent(prompt)}&useRAG=${encodeURIComponent(useRAG || false)}&lastUserMessage=${encodeURIComponent(lastUserMessage || "")}&lastAssistantMessage=${encodeURIComponent(lastAssistantMessage || "")}`,
+      `${baseURL}/generate?query=${encodeURIComponent(prompt)}&useRAG=${encodeURIComponent(useRAG || false)}&thread_id=${encodeURIComponent(threadId || "")}`,
       {
         method: "GET",
         headers: {

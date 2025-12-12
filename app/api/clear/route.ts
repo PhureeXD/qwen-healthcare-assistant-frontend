@@ -1,9 +1,12 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const baseURL = process.env.BASE_URL || "http://127.0.0.1:8000";
-    const fastApiResponse = await fetch(`${baseURL}/clear`, {
+    const { searchParams } = new URL(req.url);
+    const threadId = searchParams.get("thread_id");
+
+    const baseURL = process.env.BASE_URL || "https://phureexd-phuree.hf.space";
+    const fastApiResponse = await fetch(`${baseURL}/clear?thread_id=${encodeURIComponent(threadId || "")}`, {
       method: "GET",
       headers: {
         Accept: "application/json",

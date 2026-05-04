@@ -7,17 +7,12 @@ import {
   Card,
   CardContent,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Send, BrainCircuit, Trash2 } from "lucide-react"; // Added BrainCircuit for RAG icon
+import { Loader2, Send, BrainCircuit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatMessage } from "@/components/chat-message";
 import { HealthSuggestions } from "@/components/health-suggestions";
-import { Switch } from "@/components/ui/switch"; // Import Switch for a toggle
-import { Label } from "@/components/ui/label"; // Import Label for the Switch
 
 type Message = {
   role: "user" | "assistant";
@@ -42,15 +37,17 @@ export function HealthcareAssistant() {
   const [threadId, setThreadId] = useState<string>("");
 
   useEffect(() => {
-    // Initialize thread_id from localStorage or generate a new one
     let storedThreadId = localStorage.getItem("health_chat_thread_id");
     if (!storedThreadId) {
       storedThreadId = crypto.randomUUID();
       localStorage.setItem("health_chat_thread_id", storedThreadId);
     }
     setThreadId(storedThreadId);
+  }, []);
+
+  useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [input, isLoading, messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -191,77 +188,54 @@ export function HealthcareAssistant() {
     }
   };
 
+  const isUserTyping = input.trim().length > 0;
+  const lastMessage = messages[messages.length - 1];
+  const isAssistantStreaming = isLoading && lastMessage?.role === "assistant";
+
   return (
-    <Card className="relative w-full border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 h-[85vh] flex flex-col overflow-hidden">
-      <CardHeader className="bg-white/50 dark:bg-slate-900/50 border-b border-border/50 backdrop-blur-md sticky top-0 z-10">
-        <CardTitle className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-blue-500 blur-lg opacity-20 rounded-full"></div>
-              <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-800 shadow-sm ring-2 ring-blue-100 dark:ring-blue-900">
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-teal-500 text-white font-bold">HC</AvatarFallback>
-                <AvatarImage
-                  // src="/placeholder.svg?height=32&width=32"
-                  alt="Healthcare Assistant"
-                />
-              </Avatar>
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">Healthcare Assistant</h3>
-              <p className="text-xs text-muted-foreground font-normal">AI-powered medical support</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 bg-secondary/50 p-1 rounded-full border border-border/50">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClearConversation}
-              className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors"
-              aria-label="Clear conversation"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <div className="h-4 w-px bg-border"></div>
-            <div className="flex items-center gap-2 px-2">
-              <Switch
-                id="rag-toggle"
-                checked={useRAG}
-                onCheckedChange={setUseRAG}
-                aria-label="Toggle RAG"
-                className="scale-75 data-[state=checked]:bg-blue-600"
-              />
-              <Label
-                htmlFor="rag-toggle"
-                className="flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none"
-              >
-                <BrainCircuit className={cn("h-3.5 w-3.5", useRAG ? "text-blue-600" : "text-muted-foreground")} />
-                <span className={cn(useRAG ? "text-foreground" : "text-muted-foreground")}>RAG</span>
-              </Label>
-            </div>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 p-0 bg-gradient-to-b from-transparent to-white/50 dark:to-slate-950/50 overflow-y-auto scrollbar-hide">
-        <div className="h-full p-4 sm:p-6">
-          <div className="flex flex-col gap-6 pb-32">
+    <Card className="chat-shell relative w-full h-full min-h-0 gap-0 border-0 py-0 shadow-none bg-transparent ring-0 flex flex-col overflow-hidden">
+      <div className="chat-toolbar absolute right-4 top-3 left-auto z-20 flex w-fit max-w-fit items-center gap-2 self-end transition-all sm:opacity-75 sm:hover:opacity-100">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleClearConversation}
+          className="h-9 w-9 rounded-full border border-blue-100 bg-white/78 text-blue-900/60 shadow-sm shadow-blue-900/5 backdrop-blur-md transition-colors hover:bg-red-50 hover:text-red-600 dark:border-blue-900/60 dark:bg-slate-950/70 dark:text-blue-100/65 dark:hover:bg-red-950/30"
+          aria-label="Clear conversation"
+          title="Clear conversation"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+      <CardContent className="min-h-0 flex-1 p-0 bg-transparent overflow-y-auto scrollbar-hide">
+        <div className="h-full p-4 pt-14 sm:p-6 sm:pt-14">
+          <div className="flex min-h-full flex-col gap-6 pb-[7.5rem]">
             {messages.map((message, index) => (
-              <ChatMessage key={index} message={message} />
+              <ChatMessage
+                key={index}
+                message={message}
+                isSpeaking={
+                  isLoading &&
+                  message.role === "assistant" &&
+                  index === messages.length - 1
+                }
+              />
             ))}
-            {isLoading && (
-              <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none shadow-sm border border-border/50">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                  <span className="text-sm text-muted-foreground">Thinking...</span>
-                </div>
-              </div>
+            {isLoading && !isAssistantStreaming && (
+              <ChatMessage
+                message={{ role: "assistant", content: "..." }}
+                isSpeaking
+              />
+            )}
+            {isUserTyping && (
+              <ChatMessage message={{ role: "user", content: "..." }} isSpeaking />
             )}
             <div ref={messagesEndRef} />
           </div>
         </div>
       </CardContent>
-      <CardFooter className="absolute bottom-4 left-4 right-4 flex flex-col gap-3 p-4 bg-white/5 dark:bg-slate-900/5 border border-white/10 dark:border-white/5 rounded-3xl shadow-xl z-20">
+      <CardFooter className="absolute bottom-1 left-1/2 flex w-[calc(100%-1.5rem)] -translate-x-1/2 flex-col items-center gap-2 p-2 bg-transparent border-0 rounded-3xl shadow-none z-20">
         <HealthSuggestions onSelect={(suggestion) => setInput(suggestion)} />
-        <form onSubmit={handleSubmit} className="flex w-full gap-3 relative">
+        <form onSubmit={handleSubmit} className="flex w-full max-w-[calc(100%-0.25rem)] gap-2 relative">
           <div className="relative flex-1 group">
             <Textarea
               ref={textareaRef}
@@ -269,8 +243,25 @@ export function HealthcareAssistant() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask a health-related question..."
-              className="min-h-[60px] w-full resize-none rounded-xl border-border/30 bg-white/50 dark:bg-slate-800/50 backdrop-blur-[2px] focus-visible:ring-blue-500/30 focus-visible:border-blue-500/50 pl-4 pr-4 py-3 shadow-sm transition-all group-hover:border-blue-200/50 dark:group-hover:border-blue-800/50 text-foreground placeholder:text-muted-foreground"
+              className="min-h-[52px] w-full resize-none rounded-xl border-blue-100 bg-white/84 dark:bg-slate-900/75 dark:border-blue-900/60 backdrop-blur-[2px] focus-visible:ring-4 focus-visible:ring-cyan-500/15 focus-visible:border-cyan-500/60 pl-4 pr-[5.75rem] py-3 shadow-sm transition-all group-hover:border-cyan-300/70 dark:group-hover:border-cyan-700/80 text-blue-950 dark:text-blue-50 placeholder:text-blue-900/45 dark:placeholder:text-blue-100/40"
             />
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setUseRAG((value) => !value)}
+              aria-pressed={useRAG}
+              aria-label="Toggle RAG"
+              title={useRAG ? "RAG enabled" : "Use retrieval context"}
+              className={cn(
+                "absolute right-2 top-1/2 h-9 -translate-y-1/2 rounded-lg border px-2.5 text-xs font-semibold shadow-sm backdrop-blur-sm transition-all",
+                useRAG
+                  ? "border-blue-700 bg-gradient-to-br from-blue-700 to-cyan-600 text-white shadow-blue-600/20 hover:from-blue-600 hover:to-cyan-500 hover:text-white"
+                  : "border-blue-100 bg-white/80 text-blue-900/65 hover:bg-cyan-50 hover:text-blue-900 dark:border-blue-900/60 dark:bg-slate-900/75 dark:text-blue-100/65 dark:hover:bg-blue-950/60 dark:hover:text-blue-50"
+              )}
+            >
+              <BrainCircuit className="h-4 w-4" />
+              <span className="hidden sm:inline">RAG</span>
+            </Button>
             <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" />
           </div>
           <Button
@@ -278,7 +269,7 @@ export function HealthcareAssistant() {
             size="icon"
             disabled={isLoading || !input.trim()}
             className={cn(
-              "h-[60px] w-[60px] shrink-0 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 shadow-lg shadow-blue-500/20 transition-all duration-300",
+              "h-[52px] w-[52px] shrink-0 rounded-xl bg-gradient-to-br from-blue-700 via-sky-600 to-cyan-500 hover:-translate-y-0.5 hover:from-blue-600 hover:via-sky-500 hover:to-cyan-400 shadow-lg shadow-blue-600/25 transition-all duration-300",
               (!input.trim() || isLoading) && "opacity-50 cursor-not-allowed shadow-none"
             )}
           >

@@ -1,9 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+const isMockMessageEnabled = () => {
+  const value = process.env.IS_MOCK_MSG ?? process.env.is_mock_msg ?? "false";
+  return value.toLowerCase() === "true";
+};
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const threadId = searchParams.get("thread_id");
+
+    if (isMockMessageEnabled()) {
+      return NextResponse.json({
+        message: "Mock conversation cleared",
+        thread_id: threadId,
+      });
+    }
 
     const baseURL = process.env.BASE_URL || "https://phureexd-phuree.hf.space";
     const fastApiResponse = await fetch(`${baseURL}/clear?thread_id=${encodeURIComponent(threadId || "")}`, {

@@ -11,7 +11,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send, BrainCircuit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ChatMessage } from "@/components/chat-message";
+import { CharacterPortrait, ChatMessage } from "@/components/chat-message";
 import { HealthSuggestions } from "@/components/health-suggestions";
 
 type Message = {
@@ -32,6 +32,7 @@ export function HealthcareAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [useRAG, setUseRAG] = useState(false); // State for RAG toggle
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const activeAssistantRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [threadId, setThreadId] = useState<string>("");
@@ -46,8 +47,19 @@ export function HealthcareAssistant() {
   }, []);
 
   useEffect(() => {
+    if (messages.length <= 1) return;
+
+    const lastMessage = messages[messages.length - 1];
+    if (isLoading && lastMessage?.role === "assistant") {
+      activeAssistantRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
     scrollToBottom();
-  }, [input, isLoading, messages]);
+  }, [isLoading, messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -191,6 +203,10 @@ export function HealthcareAssistant() {
   const isUserTyping = input.trim().length > 0;
   const lastMessage = messages[messages.length - 1];
   const isAssistantStreaming = isLoading && lastMessage?.role === "assistant";
+  const greetingMessage =
+    messages.length === 1 && messages[0]?.role === "assistant"
+      ? messages[0].content
+      : "";
 
   return (
     <Card className="chat-shell relative w-full h-full min-h-0 gap-0 border-0 py-0 shadow-none bg-transparent ring-0 flex flex-col overflow-hidden">
@@ -206,20 +222,42 @@ export function HealthcareAssistant() {
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-      <CardContent className="min-h-0 flex-1 p-0 bg-transparent overflow-y-auto scrollbar-hide">
-        <div className="h-full p-4 pt-14 sm:p-6 sm:pt-14">
-          <div className="flex min-h-full flex-col gap-6 pb-[7.5rem]">
-            {messages.map((message, index) => (
-              <ChatMessage
-                key={index}
-                message={message}
-                isSpeaking={
-                  isLoading &&
-                  message.role === "assistant" &&
-                  index === messages.length - 1
-                }
-              />
-            ))}
+      <div className="assistant-hero-character" aria-hidden="true">
+        <CharacterPortrait role="assistant" isSpeaking={isLoading} />
+      </div>
+      {greetingMessage && (
+        <div className="assistant-greeting-message" aria-hidden="true">
+          <span>Assistant</span>
+          <div>{greetingMessage}</div>
+        </div>
+      )}
+      <CardContent className="relative min-h-0 flex-1 p-0 bg-transparent overflow-y-auto scrollbar-hide">
+        <div className="h-full p-4 pt-2 sm:p-6 sm:pt-2">
+          <div className="chat-stage-messages flex min-h-full flex-col gap-6 pb-6">
+            {messages.map((message, index) => {
+              const isActiveAssistant =
+                isLoading &&
+                message.role === "assistant" &&
+                index === messages.length - 1;
+
+              return (
+                <div
+                  key={index}
+                  ref={isActiveAssistant ? activeAssistantRef : undefined}
+                  className={cn(
+                    "scroll-mt-4",
+                    index === 0 &&
+                      message.role === "assistant" &&
+                      "initial-assistant-row"
+                  )}
+                >
+                  <ChatMessage
+                    message={message}
+                    isSpeaking={isActiveAssistant}
+                  />
+                </div>
+              );
+            })}
             {isLoading && !isAssistantStreaming && (
               <ChatMessage
                 message={{ role: "assistant", content: "..." }}
@@ -233,7 +271,7 @@ export function HealthcareAssistant() {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="absolute bottom-1 left-1/2 flex w-[calc(100%-1.5rem)] -translate-x-1/2 flex-col items-center gap-2 p-2 bg-transparent border-0 rounded-3xl shadow-none z-20">
+      <CardFooter className="relative z-20 flex w-full shrink-0 flex-col items-center gap-2 border-0 bg-transparent px-4 pb-2 pt-1 shadow-none">
         <HealthSuggestions onSelect={(suggestion) => setInput(suggestion)} />
         <form onSubmit={handleSubmit} className="flex w-full max-w-[calc(100%-0.25rem)] gap-2 relative">
           <div className="relative flex-1 group">

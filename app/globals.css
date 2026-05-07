@@ -223,7 +223,7 @@
     z-index: 0;
   }
 
-  .chat-shell > :not(.chat-toolbar) {
+  .chat-shell > :not(.chat-toolbar):not(.assistant-hero-character):not(.assistant-greeting-message) {
     position: relative;
     z-index: 1;
   }
@@ -231,6 +231,73 @@
   .chat-toolbar {
     position: absolute;
     z-index: 20;
+  }
+
+  .assistant-hero-character {
+    position: absolute;
+    left: 1.4rem;
+    top: 3.2rem;
+    z-index: 3;
+    width: 12rem;
+    height: 14rem;
+    pointer-events: none;
+  }
+
+  .assistant-hero-character .character-portrait {
+    margin: 0;
+    transform: scale(2.55);
+    transform-origin: left top;
+    filter:
+      drop-shadow(0 1.4rem 1.2rem rgba(14, 165, 233, 0.18))
+      drop-shadow(0 0 1.6rem rgba(96, 165, 250, 0.18));
+  }
+
+  .assistant-greeting-message {
+    position: absolute;
+    left: 14.8rem;
+    top: 5.1rem;
+    z-index: 6;
+    max-width: min(34rem, calc(100% - 17rem));
+    pointer-events: none;
+  }
+
+  .assistant-greeting-message span {
+    display: block;
+    margin: 0 0 0.25rem 0.25rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: rgba(29, 78, 216, 0.48);
+  }
+
+  .assistant-greeting-message div {
+    border: 1px solid rgba(191, 219, 254, 0.9);
+    border-radius: 1rem 1rem 1rem 0.2rem;
+    background: rgba(255, 255, 255, 0.76);
+    padding: 0.74rem 1rem;
+    color: #1e3a8a;
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.45;
+    box-shadow: 0 0.5rem 1.2rem rgba(37, 99, 235, 0.1);
+    backdrop-filter: blur(10px);
+  }
+
+  .chat-stage-messages > .initial-assistant-row {
+    display: none;
+  }
+
+  .chat-stage-messages .message-row-assistant {
+    padding-left: 13.25rem;
+  }
+
+  .chat-stage-messages .message-row {
+    position: relative;
+    z-index: 4;
+  }
+
+  .chat-stage-messages .message-row-assistant > .character-portrait {
+    display: none;
   }
 
   .character-portrait {
@@ -541,7 +608,41 @@
     }
   }
 
+  @media (max-width: 900px) {
+    .assistant-hero-character {
+      display: none;
+    }
+
+    .assistant-greeting-message {
+      display: none;
+    }
+
+    .chat-stage-messages > .initial-assistant-row {
+      display: block;
+    }
+
+    .chat-stage-messages .message-row-assistant {
+      padding-left: 0;
+    }
+
+    .chat-stage-messages .message-row-assistant > .character-portrait {
+      display: block;
+    }
+  }
+
   @media (max-width: 640px) {
+    .assistant-hero-character {
+      display: none;
+    }
+
+    .chat-stage-messages .message-row-assistant {
+      padding-left: 0;
+    }
+
+    .chat-stage-messages .message-row-assistant > .character-portrait {
+      display: block;
+    }
+
     .character-portrait {
       width: 3.1rem;
       height: 3.7rem;

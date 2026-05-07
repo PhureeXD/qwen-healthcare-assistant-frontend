@@ -11,12 +11,14 @@ interface ChatMessageProps {
   isSpeaking?: boolean;
 }
 
-function CharacterPortrait({
+export function CharacterPortrait({
   role,
   isSpeaking = false,
+  className,
 }: {
   role: "assistant" | "user";
   isSpeaking?: boolean;
+  className?: string;
 }) {
   const isUser = role === "user";
 
@@ -25,7 +27,8 @@ function CharacterPortrait({
       className={cn(
         "character-portrait",
         isUser ? "character-portrait-user" : "character-portrait-robot",
-        isSpeaking && "character-portrait-speaking"
+        isSpeaking && "character-portrait-speaking",
+        className
       )}
       role="img"
       aria-label={isUser ? "User adventurer character" : "Robot healer character"}
@@ -53,7 +56,8 @@ export function ChatMessage({ message, isSpeaking = false }: ChatMessageProps) {
   return (
     <div
       className={cn(
-        "flex gap-3 w-full",
+        "message-row flex gap-3 w-full",
+        isUser ? "message-row-user" : "message-row-assistant",
         isUser ? "justify-end" : "justify-start"
       )}
     >

@@ -19,6 +19,9 @@ type Message = {
   content: string;
 };
 
+const startsMarkdownBlock = (value: string) =>
+  /^\s*(?:[-*+]\s+|\d+[.)]\s+|#{1,6}\s+|>\s+)/.test(value);
+
 export function HealthcareAssistant() {
   const [input, setInput] = useState("");
   const initialMessages: Message[] = [
@@ -130,6 +133,7 @@ export function HealthcareAssistant() {
 
       if (reader) {
         let done = false;
+        let assistantContent = "";
         while (!done) {
           const { value, done: doneReading } = await reader.read();
           done = doneReading;
@@ -150,6 +154,7 @@ export function HealthcareAssistant() {
                 const index = text.lastIndexOf("</think>");
                 const dataContent = text.substring(index + 8 + 1);
                 content += dataContent;
+                assistantContent += dataContent;
                 break;
               }
               // streaming response case
@@ -159,7 +164,23 @@ export function HealthcareAssistant() {
                 if (/<\/?think>/.test(dataContent)) {
                   continue;
                 }
-                content += dataContent ? dataContent : "\n";
+                if (!dataContent) {
+                  content += "\n";
+                  assistantContent += "\n";
+                  continue;
+                }
+
+                if (
+                  assistantContent &&
+                  !assistantContent.endsWith("\n") &&
+                  startsMarkdownBlock(dataContent)
+                ) {
+                  content += "\n";
+                  assistantContent += "\n";
+                }
+
+                content += dataContent;
+                assistantContent += dataContent;
               }
             }
 

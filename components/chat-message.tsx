@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { ExternalLink, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown"; // Import the library
 
 type Message = {
@@ -9,6 +10,91 @@ type Message = {
 interface ChatMessageProps {
   message: Message;
   isSpeaking?: boolean;
+}
+
+type SourceLink = {
+  href: string;
+  label: string;
+};
+
+function getSourceLabel(value: string, index: number) {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.replace(/^www\./, "");
+    const filename = url.pathname.split("/").filter(Boolean).pop();
+
+    if (filename?.toLowerCase().endsWith(".pdf")) {
+      return `${hostname} PDF`;
+    }
+
+    return hostname;
+  } catch {
+    return `Source ${index + 1}`;
+  }
+}
+
+function extractSources(content: string) {
+  const normalizedContent = content.replace(/^[\uFEFF\u200B-\u200D\u2060]+/, "");
+  const sourceStart = normalizedContent.match(
+    /(?:\*\*)?\s*Sources?\s*:\s*(?:\*\*)?\s*\{/i
+  );
+
+  if (!sourceStart || sourceStart.index === undefined) {
+    return {
+      body: content,
+      sources: [] as SourceLink[],
+      isPendingSource: false,
+    };
+  }
+
+  const beforeSource = normalizedContent.slice(0, sourceStart.index);
+
+  if (beforeSource.trim()) {
+    return {
+      body: content,
+      sources: [] as SourceLink[],
+      isPendingSource: false,
+    };
+  }
+
+  const openingBraceIndex =
+    sourceStart.index + sourceStart[0].lastIndexOf("{");
+  const closingBraceIndex = normalizedContent.indexOf("}", openingBraceIndex);
+
+  if (closingBraceIndex === -1) {
+    return {
+      body: "",
+      sources: [] as SourceLink[],
+      isPendingSource: true,
+    };
+  }
+
+  const rawSources = normalizedContent.slice(
+    openingBraceIndex + 1,
+    closingBraceIndex
+  );
+  const quotedSources = Array.from(
+    rawSources.matchAll(/['"]([^'"]+)['"]/g)
+  ).map((match) => match[1].trim());
+  const urlSources = Array.from(
+    rawSources.matchAll(/https?:\/\/[^\s'",}]+/g)
+  ).map((match) => match[0].trim());
+  const fallbackSources = rawSources
+    .split(",")
+    .map((value) => value.trim().replace(/^['"]|['"]$/g, ""))
+    .filter(Boolean);
+  const uniqueSources = Array.from(
+    new Set(quotedSources.length ? quotedSources : urlSources.length ? urlSources : fallbackSources)
+  );
+
+  return {
+    body: normalizedContent.slice(closingBraceIndex + 1).trimStart(),
+    sources: uniqueSources.map((href, index) => ({
+      href,
+      label: getSourceLabel(href, index),
+    })),
+    isPendingSource: false,
+  };
 }
 
 export function CharacterPortrait({
@@ -51,7 +137,12 @@ export function CharacterPortrait({
 
 export function ChatMessage({ message, isSpeaking = false }: ChatMessageProps) {
   const isUser = message.role === "user";
-  const showTypingDots = isSpeaking && (!message.content || message.content === "...");
+  const parsedMessage = isUser
+    ? { body: message.content, sources: [] as SourceLink[], isPendingSource: false }
+    : extractSources(message.content);
+  const showTypingDots =
+    isSpeaking &&
+    (!message.content || message.content === "..." || parsedMessage.isPendingSource);
 
   return (
     <div
@@ -103,7 +194,31 @@ export function ChatMessage({ message, isSpeaking = false }: ChatMessageProps) {
                   "[&_em]:text-blue-900/65 [&_em]:dark:text-blue-100/65 [&_li]:ml-5 [&_li]:list-disc [&_li]:leading-6 [&_p]:mb-2 [&_p]:leading-6 [&_p:last-child]:mb-0 [&_strong]:font-semibold [&_ul]:mb-2 [&_ul]:mt-1 [&_ul]:space-y-0.5"
               )}
             >
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              {parsedMessage.sources.length > 0 && (
+                <div className="source-chip-row" aria-label="Sources">
+                  <span className="source-chip-label">Sources</span>
+                  {parsedMessage.sources.map((source, index) => (
+                    <a
+                      key={`${source.href}-${index}`}
+                      href={source.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="source-chip"
+                      title={source.href}
+                    >
+                      {source.href.toLowerCase().includes(".pdf") ? (
+                        <FileText aria-hidden="true" />
+                      ) : (
+                        <ExternalLink aria-hidden="true" />
+                      )}
+                      <span>{source.label}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+              {parsedMessage.body && (
+                <ReactMarkdown>{parsedMessage.body}</ReactMarkdown>
+              )}
             </div>
           )}
         </div>

@@ -8,6 +8,12 @@ const isMockMessageEnabled = () => {
 const createMockStream = (prompt: string, useRAG: string | null) => {
   const encoder = new TextEncoder();
   const mockResponse = [
+    ...(useRAG === "true"
+      ? [
+          "**Source:**{'https://medicalguidelines.msf.org/sites/default/files/pdf/guideline-170-en.pdf', 'https://www.nhsinform.scot/illnesses-and-conditions/brain-nerves-and-spinal-cord/post-polio-syndrome/'}",
+          "",
+        ]
+      : []),
     `**Mock answer for:** "${prompt}"`,
     "",
     "Here is a fast preview response so you can test the chat UI without waiting for the model backend.",
